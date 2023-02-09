@@ -1,18 +1,31 @@
 import json
 from pytasy_cricket.delivery_record import DeliveryRecord
 from pytasy_cricket.match_metadata_record import MatchMetadataRecord
-from typing import Dict, Any, List
-from pyspark.sql import Row
+from typing import Dict, Any, List, Tuple
+from pyspark.sql import Row, SparkSession
+from pyspark import RDD, Row
+from pytasy_cricket.flattened_delivery_record_schema import flattened_record_schema
 
-def read_match_file(match_file_full_path: str) -> List[Row]:
-    match_data = json.loads(open(match_file_full_path,'r').read())
-    match_id = match_file_full_path.split('/')[-1].split('.')[0]
+
+def map_to_rows(raw_data_entry:Tuple[str,str]) :
+    try:
+        match_id:str = raw_data_entry[0].split('/')[-1].split('.')[0]
+        match_data = json.loads(raw_data_entry[1])
+        return parse_match_data_to_rows(match_id=match_id, match_data=match_data)
+    except:
+        raise ValueError(raw_data_entry)
+
+def read_delivery_records_as_dataframe(raw_data_prefix: str, spark: SparkSession):
+    raw_data_rdd = spark.sparkContext.wholeTextFiles(raw_data_prefix + "/*.json")
+    spark_rows_rdd: RDD[Row] = raw_data_rdd.flatMap(map_to_rows)
+    return spark.createDataFrame(spark_rows_rdd, schema=flattened_record_schema)
+
+def parse_match_data_to_rows(match_id: str, match_data: Dict[str, Any]) -> List[Row]:
     match_metadata  = __extract_match_metadata(match_data=match_data, match_id=match_id)
     player_registry = match_data['info']['registry']['people']
     all_innings = match_data['innings']
     delivery_records = __extract_delivery_records(all_innings, player_registry, match_metadata)
     return __get_flattened_delivery_records(delivery_records, match_metadata)
-
 
 
 
@@ -107,10 +120,7 @@ def __get_flattened_delivery_records(delivery_records: List[DeliveryRecord], mat
                 season= match_metadata.season,
                 toss= match_metadata.toss,
                 team_1= match_metadata.team_1,
-                team_2= match_metadata.team_2,
-                year=int(match_metadata.start_date.split('-')[0]),
-                month=int(match_metadata.start_date.split('-')[1]),
-                dt=int(match_metadata.start_date.split('-')[2]),
+                team_2= match_metadata.team_2
             )
         )
     return flattened_delivery_records

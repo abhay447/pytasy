@@ -31,8 +31,5 @@ flattened_record_schema = StructType([
     StructField("season",StringType(), True),
     StructField("toss",StringType(), True),
     StructField("team_1",StringType(), True),
-    StructField("team_2",StringType(), True),
-    StructField("year",LongType(), True),
-    StructField("month",LongType(), True),
-    StructField("dt",LongType(), True),
+    StructField("team_2",StringType(), True)
 ])
