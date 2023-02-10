@@ -6,3 +6,4 @@ processed_output/
 pytasy_cricket/__pycache__/
 raw_historical_data/
 downloads/
+feature_stores/druid/druid_data/

@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import DataFrame
 from etl.datareader import read_delivery_records_as_dataframe
 from etl.date_utils import get_min_max_date
+from pyspark.sql.functions import col
 
 def write_bulk_historical_data(raw_data_prefix: str, output_base_path: str, spark: SparkSession) -> None:
     spark_rows_df = read_delivery_records_as_dataframe(raw_data_prefix,spark)
@@ -21,4 +22,4 @@ def merge_new_data(raw_data_prefix: str, output_base_path: str, new_data_prefix:
 def write_dataframe(df: DataFrame, output_base_path: str, overwrite: bool,  spark: SparkSession):
     write_mode = "overwrite" if overwrite else "append"
     output_path:str  = output_base_path + "/delivery_parquet"
-    df.write.format("parquet").partitionBy("start_date").mode(write_mode).save(output_path)
+    df.withColumn("dt", col("start_date")).write.format("parquet").partitionBy("dt").mode(write_mode).save(output_path)

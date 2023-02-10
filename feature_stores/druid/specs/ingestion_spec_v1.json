@@ -1,0 +1,95 @@
+{
+    "type": "index_parallel",
+    "spec": {
+      "ioConfig": {
+        "type": "index_parallel",
+        "inputSource": {
+          "type": "local",
+          "baseDir": "/dream11/processed_output/delivery_parquet/",
+          "filter": "*.parquet"
+        },
+        "inputFormat": {
+          "type": "parquet"
+        }
+      },
+      "tuningConfig": {
+        "type": "index_parallel",
+        "partitionsSpec": {
+          "type": "dynamic"
+        }
+      },
+      "dataSchema": {
+        "dataSource": "delivery_records",
+        "timestampSpec": {
+          "column": "start_date",
+          "format": "auto"
+        },
+        "dimensionsSpec": {
+          "dimensions": [
+            "innings_number",
+            "batter_id",
+            "venue_name",
+            {
+              "type": "long",
+              "name": "batter_runs"
+            },
+            "bowler_name",
+            {
+              "type": "long",
+              "name": "extra_runs"
+            },
+            "batter_name",
+            "wicket_player_name",
+            "bowler_team",
+            {
+              "type": "long",
+              "name": "total_runs"
+            },
+            "wicket_fielder_id",
+            "match_type",
+            "wicket_player_id",
+            "wicket_kind",
+            "bowler_id",
+            "match_id",
+            "batter_team",
+            "wicket_fielder_name",
+            {
+              "type": "long",
+              "name": "is_wicket"
+            }
+          ]
+        },
+        "granularitySpec": {
+          "queryGranularity": "none",
+          "rollup": false,
+          "segmentGranularity": "day"
+        },
+        "metricsSpec": [
+          {
+            "type": "longSum",
+            "name": "batter_run_sum",
+            "fieldName": "batter_runs"
+          },
+          {
+            "type": "longSum",
+            "name": "wicket_sum",
+            "fieldName": "is_wicket"
+          },
+          {
+            "type": "longSum",
+            "name": "extra_run_sum",
+            "fieldName": "extra_runs"
+          },
+          {
+            "type": "longSum",
+            "name": "total_run_sum",
+            "fieldName": "total_runs"
+          },
+          {
+            "type": "count",
+            "name": "delivery_count"
+          }
+        ]
+      }
+    }
+  }
