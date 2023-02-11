@@ -1,22 +1,27 @@
 from datetime import datetime
-from typing import Dict, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 from etl.druid.druid_stats_dao import DruidStatsDao
-from etl.common_query_templates import get_venue_filter, get_bowling_adversary_filter, get_batting_adversary_filter
+from etl.commons.common_query_templates import get_venue_filter, get_bowling_adversary_filter, get_batting_adversary_filter
 
-from pyspark.sql import Row
+from pyspark.sql import Row, SparkSession
+
+from etl.spark.spark_stats_dao import SparkStatsDao
 
 zero_mapped_values = set(['NaN', 'Infinity'])
 
 class StatsExtracter(object):
-    def __init__(self, match_id:str, dt:datetime, venue: str, team: str, player_id: str, player_name: str) -> None:
+    def __init__(self, match_id:str, dt:datetime, venue: str, team: str, player_id: str, player_name: str, spark: Optional[SparkSession], dao_mode: str) -> None:
         self.match_id = match_id
         self.dt = dt
         self.venue = venue.replace("'","''")
         self.team = team
         self.player_id = player_id
         self.player_name = player_name
-        self.dao = DruidStatsDao()
+        if dao_mode == "druid":
+            self.dao = DruidStatsDao()
+        elif spark is not None:
+            self.dao = SparkStatsDao(spark)
         self.opposing_bowlers = self.__get_opposing_bowlers()
         self.opposing_batters = self.__get_opposing_batters()
 
@@ -37,9 +42,10 @@ class StatsExtracter(object):
             additional_filters += " and %s"%(get_batting_adversary_filter(self.opposing_bowlers))
         result = self.dao.get_batting_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
+            # print(result)
             return {
-                "feature_batting_sr%s"%(stats_suffix) : float(result[0]) if result[0] not in zero_mapped_values else 0.0,
-                "feature_batting_avg%s"%(stats_suffix) : float(result[1]) if result[1] not in zero_mapped_values else 0.0
+                "feature_batting_sr%s"%(stats_suffix) : float(result[0]) if result[0] is not None and result[0] not in zero_mapped_values else 0.0,
+                "feature_batting_avg%s"%(stats_suffix) : float(result[1]) if result[1] is not None and result[1] not in zero_mapped_values else 0.0
             }
         else:
             return {
@@ -59,9 +65,9 @@ class StatsExtracter(object):
         result = self.dao.get_bowling_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
-                "feature_bowling_sr%s"%(stats_suffix) : float(result[0]) if result[0] not in zero_mapped_values else 0.0,
-                "feature_bowling_avg%s"%(stats_suffix) : float(result[1]) if result[1] not in zero_mapped_values else 0.0,
-                "feature_bowling_economy%s"%(stats_suffix) : float(result[2]) if result[2] not in zero_mapped_values else 0.0,
+                "feature_bowling_sr%s"%(stats_suffix) : float(result[0]) if result[0] is not None and result[0] not in zero_mapped_values else 0.0,
+                "feature_bowling_avg%s"%(stats_suffix) : float(result[1]) if result[1] is not None and result[1] not in zero_mapped_values else 0.0,
+                "feature_bowling_economy%s"%(stats_suffix) : float(result[2]) if result[2] is not None and result[2] not in zero_mapped_values else 0.0,
             }
         else:
             return {
@@ -76,7 +82,7 @@ class StatsExtracter(object):
         result = self.dao.get_fielding_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
-                "feature_fielding_dismissals%s"%(stats_suffix) : float(result[0]),
+                "feature_fielding_dismissals%s"%(stats_suffix) : float(result[0]) if result[0] is not None else 0.0,
             }
         else:
             return {
@@ -228,12 +234,22 @@ class StatsExtracter(object):
         return row
 
 
-def prepare_player_match_for_training(row: Tuple[str,datetime,str,str,str,str]):
+def map_player_match_for_training(row: Tuple[str,datetime,str,str,str,str]):
     match_id = row[0]
     dt = row[1]
     venue = row[2]
     team = row[3]
     player_id = row[4]
     player_name = row[5]
-    stats_extractor = StatsExtracter(match_id=match_id,dt=dt,venue=venue,team=team,player_id=player_id,player_name=player_name)
+    stats_extractor = StatsExtracter(match_id=match_id,dt=dt,venue=venue,team=team,player_id=player_id,player_name=player_name, spark=None,dao_mode="druid")
+    return stats_extractor.get_player_match_row()
+
+def sequential_player_match_for_training(row: Tuple[str,datetime,str,str,str,str], spark: SparkSession) -> Row:
+    match_id = row[0]
+    dt = row[1]
+    venue = row[2]
+    team = row[3]
+    player_id = row[4]
+    player_name = row[5]
+    stats_extractor = StatsExtracter(match_id=match_id,dt=dt,venue=venue,team=team,player_id=player_id,player_name=player_name, spark=spark,dao_mode="spark")
     return stats_extractor.get_player_match_row()
