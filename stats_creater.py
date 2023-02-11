@@ -1,13 +1,16 @@
-from pyspark.sql import SparkSession, Row
-from pyspark.rdd import RDD
+from pyspark.sql import SparkSession, DataFrame
 from etl.druid.stats_helper import prepare_player_match_for_training
+from etl.druid.training_record_schema import training_record_schema
+from etl.datawriter import write_dataframe
 
-spark = SparkSession.builder.appName('SparkByExamples.com').config('spark.driver.bindAddress','localhost').config("spark.ui.port","4050").getOrCreate()
+output_path = '/home/abhay/work/dream11/processed_output/training_rows'
+
+spark = SparkSession.builder.appName('SparkByExamples.com').config('spark.driver.bindAddress','localhost').config("spark.ui.port","4050").config("spark.driver.memory","3g").getOrCreate()
 spark.read.parquet("processed_output/delivery_parquet").registerTempTable("all_matches")
 
 train_t20_match_id_query = """
     with training_collection as (
-        select distinct match_id from all_matches where dt>='2018-01-01' and match_type='T20' limit 1500
+        select distinct match_id from all_matches where dt>='2018-01-01' and match_type='T20'
     ), base_data as (
         select * from all_matches where dt>='2018-01-01' and match_id in (select match_id from training_collection)
     ), player_ids as (
@@ -21,6 +24,10 @@ train_t20_match_id_query = """
     )
     select distinct match_id, dt, venue_name, team, player_id, player_name from player_ids 
 """
-train_t20_match_ids = spark.sql(train_t20_match_id_query)
+t20_match_ids = spark.sql(train_t20_match_id_query)
 
-training_rows: RDD[Row] = train_t20_match_ids.rdd.flatMap(prepare_player_match_for_training)
+rows_with_features = t20_match_ids.rdd.map(prepare_player_match_for_training)
+
+features_df: DataFrame =spark.createDataFrame(rows_with_features, schema=training_record_schema).coalesce(20)
+
+write_dataframe(df=features_df,output_path=output_path, overwrite=True,spark=spark)
