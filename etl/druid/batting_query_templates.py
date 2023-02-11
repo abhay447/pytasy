@@ -1,5 +1,5 @@
 from string import Template
-from typing import List
+from typing import Set
 
 batting_stats_template = Template("""
 with base_data as (
@@ -15,8 +15,5 @@ where "batter_id" = '$batter_id'
 """)
 
 
-def get_venue_filter(venue_name:str):
-    return 'venue_name=\'%s\''%venue_name
-
-def get_adversary_filter(bowler_ids: List[str]):
+def get_batting_adversary_filter(bowler_ids: Set[str]):
     return 'bowler_id in (%s)'% ",".join(['\'%s\''%bowler_id for bowler_id in bowler_ids])
