@@ -1,13 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Set, Tuple
 
+from etl.druid.druid_stats_dao import DruidStatsDao
+from etl.common_query_templates import get_venue_filter, get_bowling_adversary_filter, get_batting_adversary_filter
 
-from etl.druid.common_query_templates import distinct_opposing_bowler_template, distinct_opposing_batter_template, get_venue_filter
-from etl.druid.batting_query_templates import batting_stats_template, get_batting_adversary_filter, batting_match_stats_template
-from etl.druid.bowling_query_templates import bowling_stats_template, get_bowling_adversary_filter, bowling_match_stats_template
-from etl.druid.fielding_query_templates import fielding_stats_template, fielding_match_stats_template
-
-from sqlalchemy.engine import create_engine
 from pyspark.sql import Row
 
 zero_mapped_values = set(['NaN', 'Infinity'])
@@ -20,29 +16,15 @@ class StatsExtracter(object):
         self.team = team
         self.player_id = player_id
         self.player_name = player_name
-        # self.conn = connect(host='localhost', port=8888, path='/druid/v2/sql/', scheme='http')
-        # self.curs = Connection.cursor()
-        self.engine = create_engine('druid://localhost:8888/druid/v2/sql/')
+        self.dao = DruidStatsDao()
         self.opposing_bowlers = self.__get_opposing_bowlers()
         self.opposing_batters = self.__get_opposing_batters()
 
     def __get_opposing_bowlers(self) -> Set[str]:
-        druid_query = distinct_opposing_bowler_template.substitute(
-            match_id = self.match_id,
-            dt = self.dt,
-            batter_team = self.team
-        )
-        conn = self.engine.connect()
-        return set([row[0] for row in conn.exec_driver_sql(druid_query).fetchall()])
+        return self.dao.distinct_opposing_bowlers(self.match_id, self.dt, self.team)
 
     def __get_opposing_batters(self) -> Set[str]:
-        druid_query = distinct_opposing_batter_template.substitute(
-            match_id = self.match_id,
-            dt = self.dt,
-            bowler_team = self.team
-        )
-        conn = self.engine.connect()
-        return set([row[0] for row in conn.exec_driver_sql(druid_query).fetchall()])
+        return self.dao.distinct_opposing_batters(self.match_id, self.dt, self.team)
 
     def __extract_batting_features(self, lookbackdays: int, apply_venue_filter: bool, apply_adversery_filter: bool) -> Dict[str,float]:
         stats_suffix = "_%d_D"%(lookbackdays)
@@ -53,14 +35,7 @@ class StatsExtracter(object):
         if apply_adversery_filter:
             stats_suffix += "_versus"
             additional_filters += " and %s"%(get_batting_adversary_filter(self.opposing_bowlers))
-        batting_stats_query = batting_stats_template.substitute(
-            start_date = (self.dt - timedelta(days=lookbackdays)).strftime('%Y-%m-%d'),
-            end_date = self.dt.strftime('%Y-%m-%d'),
-            batter_id = self.player_id,
-            additional_filters= additional_filters
-        )
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(batting_stats_query).fetchone()
+        result = self.dao.get_batting_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
                 "feature_batting_sr%s"%(stats_suffix) : float(result[0]) if result[0] not in zero_mapped_values else 0.0,
@@ -81,14 +56,7 @@ class StatsExtracter(object):
         if apply_adversery_filter:
             stats_suffix += "_versus"
             additional_filters += " and %s"%(get_bowling_adversary_filter(self.opposing_batters))
-        bowling_stats_query = bowling_stats_template.substitute(
-            start_date = (self.dt - timedelta(days=lookbackdays)).strftime('%Y-%m-%d'),
-            end_date = self.dt.strftime('%Y-%m-%d'),
-            bowler_id = self.player_id,
-            additional_filters= additional_filters
-        )
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(bowling_stats_query).fetchone()
+        result = self.dao.get_bowling_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
                 "feature_bowling_sr%s"%(stats_suffix) : float(result[0]) if result[0] not in zero_mapped_values else 0.0,
@@ -105,14 +73,7 @@ class StatsExtracter(object):
     def __extract_fielding_features(self, lookbackdays: int) -> Dict[str,float]:
         stats_suffix = "_%d_D"%(lookbackdays)
         additional_filters: str = ""
-        fielding_stats_query = fielding_stats_template.substitute(
-            start_date = (self.dt - timedelta(days=lookbackdays)).strftime('%Y-%m-%d'),
-            end_date = self.dt.strftime('%Y-%m-%d'),
-            fielder_id = self.player_id,
-            additional_filters = additional_filters
-        )
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(fielding_stats_query).fetchone()
+        result = self.dao.get_fielding_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
                 "feature_fielding_dismissals%s"%(stats_suffix) : float(result[0]),
@@ -152,14 +113,8 @@ class StatsExtracter(object):
 
     
     def __extract_batting_fantasy_points(self):
-        batting_match_stats_query = batting_match_stats_template.substitute(
-            dt=self.dt,
-            match_id=self.match_id,
-            batter_id=self.player_id
-        )
         fantasy_points = 0
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(batting_match_stats_query).fetchone()
+        result = self.dao.get_batting_match_stats(self.dt, self.player_id, self.match_id)
         if result is not None:
             runs: int = result[0] if result[0] is not None else 0
             balls: int = result[1] if result[1] is not None else 0
@@ -188,14 +143,8 @@ class StatsExtracter(object):
         return fantasy_points
 
     def __extract_bowling_fantasy_points(self):
-        bowling_match_stats_query = bowling_match_stats_template.substitute(
-            dt=self.dt,
-            match_id=self.match_id,
-            bowler_id=self.player_id
-        )
         fantasy_points = 0
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(bowling_match_stats_query).fetchone()
+        result = self.dao.get_bowling_match_stats(self.dt,self.player_id,self.match_id)
         if result is not None:
             runs: int = result[0] if result[0] is not None else 0
             balls: int = result[1] if result[1] is not None else 0
@@ -217,14 +166,8 @@ class StatsExtracter(object):
         return fantasy_points
 
     def __extract_fielding_fantasy_points(self):
-        fielding_match_stats_query = fielding_match_stats_template.substitute(
-            dt=self.dt,
-            match_id=self.match_id,
-            fielder_id=self.player_id
-        )
         fantasy_points = 0
-        conn = self.engine.connect()
-        result = conn.exec_driver_sql(fielding_match_stats_query).fetchone()
+        result = self.dao.get_fielding_match_stats(self.dt, self.player_id,self.match_id)
         if result is not None:
             dismissals: int = result[0] if result[0] is not None else 0
             fantasy_points = dismissals * 7 # avergae to 7 to account for various dismisaals mechanisms
