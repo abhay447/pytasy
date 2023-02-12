@@ -1,50 +1,57 @@
-import time
-
-from typing import List
-from pyspark import Row
-from etl.commons.stats_helper import map_player_match_for_training, sequential_player_match_for_training
-from etl.commons.training_record_schema import training_record_schema
-from etl.datawriter import write_dataframe
 from etl.spark.spark_session_helper import spark
-from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+from etl.commons.stats_helper import get_fantasy_points_udf
 
 output_path = '/home/abhay/work/dream11/processed_output/training_rows'
-use_sequential_spark_code = True
 
-spark.read.parquet("processed_output/delivery_parquet").createOrReplaceTempView("all_matches")
-spark.read.parquet("processed_output/t20_batter_match_stats").cache().createOrReplaceTempView("t20_batter_match_stats")
-spark.read.parquet("processed_output/t20_bowler_match_stats").cache().createOrReplaceTempView("t20_bowler_match_stats")
-spark.read.parquet("processed_output/t20_batter_bowler_month_stats").cache().createOrReplaceTempView("t20_batter_bowler_month_stats")
-spark.read.parquet("processed_output/t20_fielder_match_stats").cache().createOrReplaceTempView("t20_fielder_match_stats")
+t20_bowler_match_stats_df = spark.read.parquet("processed_output/t20_bowler_match_stats")\
+    .withColumnRenamed("match_id", "bowler_match_id")\
+    .withColumnRenamed("dt", "bowler_dt")\
+    .withColumnRenamed("venue_name", "bowler_venue_name")
+t20_batter_match_stats_df = spark.read.parquet("processed_output/t20_batter_match_stats")\
+    .withColumnRenamed("match_id", "batter_match_id")\
+    .withColumnRenamed("dt", "batter_dt")\
+    .withColumnRenamed("venue_name", "batter_venue_name")
 
-train_t20_match_id_query = """
-    with training_collection as (
-        select distinct match_id from all_matches where dt>='2018-01-01' and match_type='T20' limit 15
-    ), base_data as (
-        select * from all_matches where dt>='2018-01-01' and match_id in (select match_id from training_collection)
-    ), player_ids as (
-        select distinct match_id, dt, venue_name, batter_team as team, batter_id as player_id, batter_name as player_name from base_data where batter_id is not null
-        union
-        select distinct match_id, dt, venue_name, bowler_team as team, bowler_id as player_id, bowler_name as player_name from base_data where bowler_id is not null
-        union
-        select distinct match_id, dt, venue_name, batter_team as team, wicket_player_id as player_id, wicket_player_name as player_name from base_data where wicket_player_id is not null
-        union
-        select distinct match_id, dt, venue_name, bowler_team as team, wicket_fielder_id as player_id, wicket_fielder_name as player_name from base_data where wicket_fielder_id is not null
+t20_fielder_match_stats_df = spark.read.parquet("processed_output/t20_fielder_match_stats")\
+    .withColumnRenamed("match_id", "fielder_match_id")\
+    .withColumnRenamed("dt", "fielder_dt")\
+
+bat_bowl_df = t20_batter_match_stats_df \
+    .join(t20_bowler_match_stats_df, 
+          [
+              t20_batter_match_stats_df.batter_id == t20_bowler_match_stats_df.bowler_id,
+              t20_batter_match_stats_df.batter_match_id == t20_bowler_match_stats_df.bowler_match_id,
+          ],
+          how="full_outer"
+    )\
+    .withColumn("bat_bowl_player_id", f.coalesce(t20_batter_match_stats_df.batter_id,t20_bowler_match_stats_df.bowler_id))\
+    .withColumn("bat_bowl_dt", f.coalesce(t20_batter_match_stats_df.batter_dt,t20_bowler_match_stats_df.bowler_dt))\
+    .withColumn("bat_bowl_match_id", f.coalesce(t20_batter_match_stats_df.batter_match_id,t20_bowler_match_stats_df.bowler_match_id))\
+    .withColumn("venue_name", f.coalesce(t20_batter_match_stats_df.batter_venue_name,t20_bowler_match_stats_df.bowler_venue_name))\
+    .drop("bowler_match_id","bowler_dt","bowler_venue_name","batter_match_id","batter_dt","batter_venue_name", "batter_id", "bowler_id")
+
+bat_bowl_field_df = bat_bowl_df \
+    .join(t20_fielder_match_stats_df, 
+          [
+              bat_bowl_df.bat_bowl_player_id == t20_fielder_match_stats_df.wicket_fielder_id,
+              bat_bowl_df.bat_bowl_match_id == t20_fielder_match_stats_df.fielder_match_id,
+          ],
+          how="full_outer"
+    )\
+    .withColumn("player_id", f.coalesce(bat_bowl_df.bat_bowl_player_id,t20_fielder_match_stats_df.wicket_fielder_id))\
+    .withColumn("dt", f.coalesce(bat_bowl_df.bat_bowl_dt,t20_fielder_match_stats_df.fielder_dt))\
+    .withColumn("match_id", f.coalesce(bat_bowl_df.bat_bowl_match_id,t20_fielder_match_stats_df.fielder_match_id))\
+    .drop("fielder_match_id","fielder_dt","wicket_fielder_id","bat_bowl_player_id","bat_bowl_dt", "bat_bowl_match_id")
+
+bat_bowl_field_df_with_points = bat_bowl_field_df\
+    .withColumn(
+        "fantasy_points",get_fantasy_points_udf(
+            bat_bowl_field_df.batter_run_sum, bat_bowl_field_df.dismissals, bat_bowl_field_df.balls_faced,
+            bat_bowl_field_df.boundary_count, bat_bowl_field_df.six_count,
+            bat_bowl_field_df.total_run_sum, bat_bowl_field_df.wicket_sum, bat_bowl_field_df.deliveries, bat_bowl_field_df.maiden_count,
+            bat_bowl_field_df.fielding_wicket_sum
+        )
     )
-    select distinct match_id, dt, venue_name, team, player_id, player_name from player_ids 
-"""
-t20_match_ids = spark.sql(train_t20_match_id_query)
 
-if not use_sequential_spark_code:
-    rows_with_features_rdd = t20_match_ids.rdd.map(map_player_match_for_training)
-    features_df: DataFrame = spark.createDataFrame(rows_with_features_rdd, schema=training_record_schema).coalesce(20)
-else:
-    match_player_id_rows = t20_match_ids.collect()
-    rows_with_features_list: List[Row] = []
-    for i in range(len(match_player_id_rows)):
-        start_time = time.time()
-        rows_with_features_list.append(sequential_player_match_for_training(match_player_id_rows[i], spark))
-        print("finished row %d out %d in %s seconds "%(i, len(match_player_id_rows), time.time() - start_time))
-    features_df: DataFrame = spark.createDataFrame(rows_with_features_list, schema=training_record_schema).coalesce(20)
-
-write_dataframe(df=features_df,output_path=output_path, overwrite=True,spark=spark)
+bat_bowl_field_df_with_points.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
