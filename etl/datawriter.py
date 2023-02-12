@@ -27,7 +27,5 @@ def write_dataframe_with_date_partition(df: DataFrame, output_path: str, overwri
     print("finished dataframe write to path %s in %s seconds ---" % (output_path, time.time() - start_time))
 
 def write_dataframe(df: DataFrame, output_path: str, overwrite: bool,  spark: SparkSession):
-    start_time = time.time()
     write_mode = "overwrite" if overwrite else "append"
     df.write.format("parquet").mode(write_mode).save(output_path)
-    print("finished dataframe write to path %s in %s seconds ---" % (output_path, time.time() - start_time))

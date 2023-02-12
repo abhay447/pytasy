@@ -1,15 +1,20 @@
+import time
+
 from typing import List
 from pyspark import Row
-from pyspark.sql import SparkSession, DataFrame
 from etl.commons.stats_helper import map_player_match_for_training, sequential_player_match_for_training
 from etl.commons.training_record_schema import training_record_schema
 from etl.datawriter import write_dataframe
+from etl.spark.spark_session_helper import spark
 
 output_path = '/home/abhay/work/dream11/processed_output/training_rows'
 use_sequential_spark_code = True
 
-spark = SparkSession.builder.appName('SparkByExamples.com').config('spark.driver.bindAddress','localhost').config("spark.ui.port","4050").config("spark.driver.memory","6g").getOrCreate()
-spark.read.parquet("processed_output/delivery_parquet").cache().createOrReplaceTempView("all_matches")
+spark.read.parquet("processed_output/delivery_parquet").createOrReplaceTempView("all_matches")
+spark.read.parquet("processed_output/t20_batter_match_stats").cache().createOrReplaceTempView("t20_batter_match_stats")
+spark.read.parquet("processed_output/t20_bowler_match_stats").cache().createOrReplaceTempView("t20_bowler_match_stats")
+spark.read.parquet("processed_output/t20_batter_bowler_month_stats").cache().createOrReplaceTempView("t20_batter_bowler_month_stats")
+spark.read.parquet("processed_output/t20_fielder_match_stats").cache().createOrReplaceTempView("t20_fielder_match_stats")
 
 train_t20_match_id_query = """
     with training_collection as (
@@ -36,8 +41,9 @@ else:
     match_player_id_rows = t20_match_ids.collect()
     rows_with_features_list: List[Row] = []
     for i in range(len(match_player_id_rows)):
+        start_time = time.time()
         rows_with_features_list.append(sequential_player_match_for_training(match_player_id_rows[i], spark))
-        print("finished row %d out %d"%(i, len(match_player_id_rows)))
+        print("finished row %d out %d in %s seconds "%(i, len(match_player_id_rows), time.time() - start_time))
     features_df: DataFrame = spark.createDataFrame(rows_with_features_list, schema=training_record_schema).coalesce(20)
 
 write_dataframe(df=features_df,output_path=output_path, overwrite=True,spark=spark)

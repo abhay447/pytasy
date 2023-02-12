@@ -22,8 +22,8 @@ class StatsExtracter(object):
             self.dao = DruidStatsDao()
         elif spark is not None:
             self.dao = SparkStatsDao(spark)
-        self.opposing_bowlers = self.__get_opposing_bowlers()
-        self.opposing_batters = self.__get_opposing_batters()
+        # self.opposing_bowlers = self.__get_opposing_bowlers()
+        # self.opposing_batters = self.__get_opposing_batters()
 
     def __get_opposing_bowlers(self) -> Set[str]:
         return self.dao.distinct_opposing_bowlers(self.match_id, self.dt, self.team)
@@ -37,9 +37,9 @@ class StatsExtracter(object):
         if apply_venue_filter:
             stats_suffix += "_venue"
             additional_filters += " and %s"%(get_venue_filter(self.venue))
-        if apply_adversery_filter:
-            stats_suffix += "_versus"
-            additional_filters += " and %s"%(get_batting_adversary_filter(self.opposing_bowlers))
+        # if apply_adversery_filter:
+        #     stats_suffix += "_versus"
+        #     additional_filters += " and %s"%(get_batting_adversary_filter(self.opposing_bowlers))
         result = self.dao.get_batting_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             # print(result)
@@ -59,9 +59,9 @@ class StatsExtracter(object):
         if apply_venue_filter:
             stats_suffix += "_venue"
             additional_filters += " and %s"%(get_venue_filter(self.venue))
-        if apply_adversery_filter:
-            stats_suffix += "_versus"
-            additional_filters += " and %s"%(get_bowling_adversary_filter(self.opposing_batters))
+        # if apply_adversery_filter:
+        #     stats_suffix += "_versus"
+        #     additional_filters += " and %s"%(get_bowling_adversary_filter(self.opposing_batters))
         result = self.dao.get_bowling_features(self.dt,self.player_id,lookbackdays,additional_filters)
         if result is not None:
             return {
@@ -91,23 +91,25 @@ class StatsExtracter(object):
            
 
     def __get_batting_features(self) -> Dict[str,float]:
-        batting_stats = self.__extract_batting_features(30, False, False)
+        batting_stats:Dict[str,float] = {}
+        # batting_stats = batting_stats | self.__extract_batting_features(30, False, False)
         batting_stats = batting_stats |  self.__extract_batting_features(90, False, False)
-        batting_stats = batting_stats |  self.__extract_batting_features(180, False, False)
+        # batting_stats = batting_stats |  self.__extract_batting_features(180, False, False)
         batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, False, False)
         batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, True, False)
-        batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, False, True)
-        batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, True, True)
+        # batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, False, True)
+        # batting_stats = batting_stats |  self.__extract_batting_features(30*12*5, True, True)
         return batting_stats
 
     def __get_bowling_features(self) -> Dict[str,float]:
-        bowling_stats = self.__extract_bowling_features(30, False, False)
+        bowling_stats:Dict[str,float] = {}
+        # bowling_stats = bowling_stats |  self.__extract_bowling_features(30, False, False)
         bowling_stats = bowling_stats |  self.__extract_bowling_features(90, False, False)
-        bowling_stats = bowling_stats |  self.__extract_bowling_features(180, False, False)
+        # bowling_stats = bowling_stats |  self.__extract_bowling_features(180, False, False)
         bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, False, False)
         bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, True, False)
-        bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, False, True)
-        bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, True, True)
+        # bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, False, True)
+        # bowling_stats = bowling_stats |  self.__extract_bowling_features(30*12*5, True, True)
         return bowling_stats
 
     def __get_fielding_features(self)-> Dict[str,float]:
@@ -188,41 +190,42 @@ class StatsExtracter(object):
     def get_player_match_row(self) -> Row:
         features = self.get_player_features()
         row = Row(
-            feature_batting_sr_30_D=features['feature_batting_sr_30_D'],
-            feature_batting_avg_30_D=features['feature_batting_avg_30_D'],
+            # feature_batting_sr_30_D=features['feature_batting_sr_30_D'],
+            # feature_batting_avg_30_D=features['feature_batting_avg_30_D'],
             feature_batting_sr_90_D=features['feature_batting_sr_90_D'],
             feature_batting_avg_90_D=features['feature_batting_avg_90_D'],
-            feature_batting_sr_180_D=features['feature_batting_sr_180_D'],
-            feature_batting_avg_180_D=features['feature_batting_avg_180_D'],
+            # feature_batting_sr_180_D=features['feature_batting_sr_180_D'],
+            # feature_batting_avg_180_D=features['feature_batting_avg_180_D'],
             feature_batting_sr_1800_D=features['feature_batting_sr_1800_D'],
             feature_batting_avg_1800_D=features['feature_batting_avg_1800_D'],
             feature_batting_sr_1800_D_venue=features['feature_batting_sr_1800_D_venue'],
             feature_batting_avg_1800_D_venue=features['feature_batting_avg_1800_D_venue'],
-            feature_batting_sr_1800_D_versus=features['feature_batting_sr_1800_D_versus'],
-            feature_batting_avg_1800_D_versus=features['feature_batting_avg_1800_D_versus'],
-            feature_batting_sr_1800_D_venue_versus=features['feature_batting_sr_1800_D_venue_versus'],
-            feature_batting_avg_1800_D_venue_versus=features['feature_batting_avg_1800_D_venue_versus'],
-            feature_bowling_sr_30_D=features['feature_bowling_sr_30_D'],
-            feature_bowling_avg_30_D=features['feature_bowling_avg_30_D'],
-            feature_bowling_economy_30_D=features['feature_bowling_economy_30_D'],
+            # feature_batting_sr_1800_D_versus=features['feature_batting_sr_1800_D_versus'],
+            # feature_batting_avg_1800_D_versus=features['feature_batting_avg_1800_D_versus'],
+            # feature_batting_sr_1800_D_venue_versus=features['feature_batting_sr_1800_D_venue_versus'],
+            # feature_batting_avg_1800_D_venue_versus=features['feature_batting_avg_1800_D_venue_versus'],
+
+            # feature_bowling_sr_30_D=features['feature_bowling_sr_30_D'],
+            # feature_bowling_avg_30_D=features['feature_bowling_avg_30_D'],
+            # feature_bowling_economy_30_D=features['feature_bowling_economy_30_D'],
             feature_bowling_sr_90_D=features['feature_bowling_sr_90_D'],
             feature_bowling_avg_90_D=features['feature_bowling_avg_90_D'],
             feature_bowling_economy_90_D=features['feature_bowling_economy_90_D'],
-            feature_bowling_sr_180_D=features['feature_bowling_sr_180_D'],
-            feature_bowling_avg_180_D=features['feature_bowling_avg_180_D'],
-            feature_bowling_economy_180_D=features['feature_bowling_economy_180_D'],
+            # feature_bowling_sr_180_D=features['feature_bowling_sr_180_D'],
+            # feature_bowling_avg_180_D=features['feature_bowling_avg_180_D'],
+            # feature_bowling_economy_180_D=features['feature_bowling_economy_180_D'],
             feature_bowling_sr_1800_D=features['feature_bowling_sr_1800_D'],
             feature_bowling_avg_1800_D=features['feature_bowling_avg_1800_D'],
             feature_bowling_economy_1800_D=features['feature_bowling_economy_1800_D'],
             feature_bowling_sr_1800_D_venue=features['feature_bowling_sr_1800_D_venue'],
             feature_bowling_avg_1800_D_venue=features['feature_bowling_avg_1800_D_venue'],
             feature_bowling_economy_1800_D_venue=features['feature_bowling_economy_1800_D_venue'],
-            feature_bowling_sr_1800_D_versus=features['feature_bowling_sr_1800_D_versus'],
-            feature_bowling_avg_1800_D_versus=features['feature_bowling_avg_1800_D_versus'],
-            feature_bowling_economy_1800_D_versus=features['feature_bowling_economy_1800_D_versus'],
-            feature_bowling_sr_1800_D_venue_versus=features['feature_bowling_sr_1800_D_venue_versus'],
-            feature_bowling_avg_1800_D_venue_versus=features['feature_bowling_avg_1800_D_venue_versus'],
-            feature_bowling_economy_1800_D_venue_versus=features['feature_bowling_economy_1800_D_venue_versus'],
+            # feature_bowling_sr_1800_D_versus=features['feature_bowling_sr_1800_D_versus'],
+            # feature_bowling_avg_1800_D_versus=features['feature_bowling_avg_1800_D_versus'],
+            # feature_bowling_economy_1800_D_versus=features['feature_bowling_economy_1800_D_versus'],
+            # feature_bowling_sr_1800_D_venue_versus=features['feature_bowling_sr_1800_D_venue_versus'],
+            # feature_bowling_avg_1800_D_venue_versus=features['feature_bowling_avg_1800_D_venue_versus'],
+            # feature_bowling_economy_1800_D_venue_versus=features['feature_bowling_economy_1800_D_venue_versus'],
             feature_fielding_dismissals_1800_D=features['feature_fielding_dismissals_1800_D'],
             player_name=self.player_name,
             player_id=self.player_id,
