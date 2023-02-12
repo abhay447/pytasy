@@ -6,7 +6,7 @@ from etl.commons.common_query_templates import get_venue_filter, get_bowling_adv
 
 from pyspark.sql import Row, SparkSession
 
-from etl.spark.spark_stats_dao import SparkStatsDao
+from etl.spark.sequential.spark_stats_dao import SparkStatsDao
 
 zero_mapped_values = set(['NaN', 'Infinity'])
 

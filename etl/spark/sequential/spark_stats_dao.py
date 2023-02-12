@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Set
 
 
-from etl.spark.spark_query_templates import batting_stats_template, bowling_stats_template, batting_match_stats_template, distinct_opposing_bowler_template, distinct_opposing_batter_template, fielding_match_stats_template, bowling_match_stats_template, fielding_stats_template
+from etl.spark.sequential.spark_query_templates import batting_stats_template, bowling_stats_template, batting_match_stats_template, distinct_opposing_bowler_template, distinct_opposing_batter_template, fielding_match_stats_template, bowling_match_stats_template, fielding_stats_template
 
 from pyspark.sql import SparkSession
 

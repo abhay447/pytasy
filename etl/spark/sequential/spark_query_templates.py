@@ -77,15 +77,15 @@ distinct_opposing_batter_template = Template("""
 
 fielding_stats_template = Template("""
 with base_data as (
-  select * from all_matches WHERE dt > '$start_date' AND dt < '$end_date'  AND match_type = 'T20' $additional_filters
+  select * from t20_fielder_match_stats WHERE dt > '$start_date' AND dt < '$end_date'  AND match_type = 'T20' $additional_filters
 )
-SELECT sum(is_wicket) as fielding_dismissals from base_data where wicket_fielder_id= '$fielder_id'
+SELECT sum(wicket_sum) as fielding_dismissals from base_data where wicket_fielder_id= '$fielder_id'
 """)
 
 fielding_match_stats_template = Template("""
 with base_data as (
-  select * from all_matches WHERE dt = '$dt' AND match_id='$match_id'
+  select * from t20_fielder_match_stats WHERE dt = '$dt' AND match_id='$match_id'
 )
-SELECT sum(is_wicket) as fielding_dismissals from base_data where wicket_fielder_id= '$fielder_id'
+SELECT sum(wicket_sum) as fielding_dismissals from base_data where wicket_fielder_id= '$fielder_id'
 """)
   
