@@ -6,6 +6,7 @@ from etl.commons.stats_helper import map_player_match_for_training, sequential_p
 from etl.commons.training_record_schema import training_record_schema
 from etl.datawriter import write_dataframe
 from etl.spark.spark_session_helper import spark
+from pyspark.sql import DataFrame
 
 output_path = '/home/abhay/work/dream11/processed_output/training_rows'
 use_sequential_spark_code = True
