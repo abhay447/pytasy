@@ -1,4 +1,5 @@
-from pyspark.sql.functions import sum, count, when, col
+from pyspark.sql import functions as f
+from pyspark.sql.window import Window
 from common_requirements import t20_df_with_boundaries
 
 output_path = '/home/abhay/work/dream11/processed_output/t20_bowler_match_stats'
@@ -11,20 +12,74 @@ t20_bowler_df = t20_df_with_boundaries.select(bowler_over_relevant_dimensions+bo
 
 t20_bowler_over_df = t20_bowler_df.groupBy(bowler_over_relevant_dimensions) \
     .agg(
-        sum("total_runs").alias("over_total_run_sum"),
-        sum("is_wicket").alias("over_wicket_sum"),
-        count("bowler_id").alias("over_deliveries")
+        f.sum("total_runs").alias("over_total_run_sum"),
+        f.sum("is_wicket").alias("over_wicket_sum"),
+        f.count("bowler_id").alias("over_deliveries")
     )\
-    .withColumn('is_maiden', when(col('over_total_run_sum') == 0 , 1).otherwise(0))
+    .withColumn('is_maiden', f.when(f.col('over_total_run_sum') == 0 , 1).otherwise(0))
 
 
 t20_bowler_match_df = t20_bowler_over_df.groupBy(bowler_match_relevant_dimensions) \
     .agg(
-        sum("over_total_run_sum").alias("total_run_sum"),
-        sum("over_wicket_sum").alias("wicket_sum"),
-        sum("is_maiden").alias("maiden_count"),
-        sum("over_deliveries").alias("deliveries"),
+        f.sum("over_total_run_sum").alias("total_run_sum"),
+        f.sum("over_wicket_sum").alias("wicket_sum"),
+        f.sum("is_maiden").alias("maiden_count"),
+        f.sum("over_deliveries").alias("deliveries"),
     )
+
+w_30d = (
+    Window.partitionBy("bowler_id","bowler_name")
+    .orderBy(f.unix_timestamp(f.col("dt").cast("timestamp")))
+    .rangeBetween(-30*86400, Window.currentRow)
+)
+w_90d = (
+    Window.partitionBy("bowler_id","bowler_name")
+    .orderBy(f.unix_timestamp(f.col("dt").cast("timestamp")))
+    .rangeBetween(-90*86400, Window.currentRow)
+)
+w_300d = (
+    Window.partitionBy("bowler_id","bowler_name")
+    .orderBy(f.unix_timestamp(f.col("dt").cast("timestamp")))
+    .rangeBetween(-300*86400, Window.currentRow)
+)
+w_1000d = (
+    Window.partitionBy("bowler_id","bowler_name")
+    .orderBy(f.unix_timestamp(f.col("dt").cast("timestamp")))
+    .rangeBetween(-1000*86400, Window.currentRow)
+)
+
+w_1000d_venue = (
+    Window.partitionBy("bowler_id","bowler_name","venue_name")
+    .orderBy(f.unix_timestamp(f.col("dt").cast("timestamp")))
+    .rangeBetween(-1000*86400, Window.currentRow)
+)
+
+windowed_stats_df = t20_bowler_match_df.select(
+    "dt","match_id","bowler_id","bowler_name","venue_name","total_run_sum", "deliveries", "wicket_sum", "maiden_count", 
+    f.sum("total_run_sum").over(w_30d).alias("total_runs_30D"),
+    f.sum("total_run_sum").over(w_90d).alias("total_runs_90D"),
+    f.sum("total_run_sum").over(w_300d).alias("total_runs_300D"),
+    f.sum("total_run_sum").over(w_1000d).alias("total_runs_1000D"),
+    f.sum("total_run_sum").over(w_1000d_venue).alias("total_runs_1000D_venue"),
+    
+    f.sum("deliveries").over(w_30d).alias("deliveries_30D"),
+    f.sum("deliveries").over(w_90d).alias("deliveries_90D"),
+    f.sum("deliveries").over(w_300d).alias("deliveries_300D"),
+    f.sum("deliveries").over(w_1000d).alias("deliveries_1000D"),
+    f.sum("deliveries").over(w_1000d_venue).alias("deliveries_1000D_venue"),
+
+    f.sum("wicket_sum").over(w_30d).alias("wicket_sum_30D"),
+    f.sum("wicket_sum").over(w_90d).alias("wicket_sum_90D"),
+    f.sum("wicket_sum").over(w_300d).alias("wicket_sum_300D"),
+    f.sum("wicket_sum").over(w_1000d).alias("wicket_sum_1000D"),
+    f.sum("wicket_sum").over(w_1000d_venue).alias("wicket_sum_1000D_venue"),
+    
+    f.sum("maiden_count").over(w_30d).alias("maiden_count_30D"),
+    f.sum("maiden_count").over(w_90d).alias("maiden_count_90D"),
+    f.sum("maiden_count").over(w_300d).alias("maiden_count_300D"),
+    f.sum("maiden_count").over(w_1000d).alias("maiden_count_1000D"),
+    f.sum("maiden_count").over(w_1000d_venue).alias("maiden_count_1000D_venue")  
+)
 
 t20_bowler_match_df.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
 

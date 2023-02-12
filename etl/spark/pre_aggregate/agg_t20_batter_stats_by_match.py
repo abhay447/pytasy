@@ -47,11 +47,11 @@ w_1000d_venue = (
 
 windowed_stats_df = t20_batter_match_df.select(
     "dt","match_id","batter_id","batter_name","venue_name","batter_run_sum", "deliveries", "dismissals", "boundary_count", "six_count", 
-    f.sum("batter_run_sum").over(w_30d).alias("runs_30D"),
-    f.sum("batter_run_sum").over(w_90d).alias("runs_90D"),
-    f.sum("batter_run_sum").over(w_300d).alias("runs_300D"),
-    f.sum("batter_run_sum").over(w_1000d).alias("runs_1000D"),
-    f.sum("batter_run_sum").over(w_1000d_venue).alias("runs_1000D_venue"),
+    f.sum("batter_run_sum").over(w_30d).alias("batter_runs_30D"),
+    f.sum("batter_run_sum").over(w_90d).alias("batter_runs_90D"),
+    f.sum("batter_run_sum").over(w_300d).alias("batter_runs_300D"),
+    f.sum("batter_run_sum").over(w_1000d).alias("batter_runs_1000D"),
+    f.sum("batter_run_sum").over(w_1000d_venue).alias("batter_runs_1000D_venue"),
     
     f.sum("deliveries").over(w_30d).alias("deliveries_30D"),
     f.sum("deliveries").over(w_90d).alias("deliveries_90D"),
