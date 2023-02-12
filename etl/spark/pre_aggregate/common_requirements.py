@@ -6,7 +6,7 @@ parquet_input_path = '/home/abhay/work/dream11/processed_output/delivery_parquet
 spark = SparkSession.builder.appName('SparkByExamples.com')\
     .config('spark.driver.bindAddress','localhost')\
     .config("spark.ui.port","4051")\
-    .config("spark.driver.memory","5g")\
+    .config("spark.driver.memory","7g")\
     .getOrCreate()
 
 t20_df_with_boundaries = spark.read.parquet(parquet_input_path)\

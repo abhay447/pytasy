@@ -1,5 +1,5 @@
 from pyspark.sql.functions import sum, count
-from etl.spark.pre_aggregate.common_requirements import t20_df_with_boundaries
+from common_requirements import t20_df_with_boundaries
 
 output_path = '/home/abhay/work/dream11/processed_output/t20_batter_match_stats'
 
