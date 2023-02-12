@@ -14,7 +14,7 @@ t20_batter_match_df  = t20_batter_delivery_df.groupBy(batter_relevant_dimensions
         f.sum("is_dismissed").alias("dismissals"),
         f.sum("is_boundary").alias("boundary_count"),
         f.sum("is_six").alias("six_count"),
-        f.count("batter_id").alias("deliveries")
+        f.count("batter_id").alias("balls_faced")
     )
 
 w_30d = (
@@ -46,18 +46,18 @@ w_1000d_venue = (
 
 
 windowed_stats_df = t20_batter_match_df.select(
-    "dt","match_id","batter_id","batter_name","venue_name","batter_run_sum", "deliveries", "dismissals", "boundary_count", "six_count", 
+    "dt","match_id","batter_id","batter_name","venue_name","batter_run_sum", "balls_faced", "dismissals", "boundary_count", "six_count", 
     f.sum("batter_run_sum").over(w_30d).alias("batter_runs_30D"),
     f.sum("batter_run_sum").over(w_90d).alias("batter_runs_90D"),
     f.sum("batter_run_sum").over(w_300d).alias("batter_runs_300D"),
     f.sum("batter_run_sum").over(w_1000d).alias("batter_runs_1000D"),
     f.sum("batter_run_sum").over(w_1000d_venue).alias("batter_runs_1000D_venue"),
     
-    f.sum("deliveries").over(w_30d).alias("deliveries_30D"),
-    f.sum("deliveries").over(w_90d).alias("deliveries_90D"),
-    f.sum("deliveries").over(w_300d).alias("deliveries_300D"),
-    f.sum("deliveries").over(w_1000d).alias("deliveries_1000D"),
-    f.sum("deliveries").over(w_1000d_venue).alias("deliveries_1000D_venue"),
+    f.sum("balls_faced").over(w_30d).alias("balls_faced_30D"),
+    f.sum("balls_faced").over(w_90d).alias("balls_faced_90D"),
+    f.sum("balls_faced").over(w_300d).alias("balls_faced_300D"),
+    f.sum("balls_faced").over(w_1000d).alias("balls_faced_1000D"),
+    f.sum("balls_faced").over(w_1000d_venue).alias("balls_faced_1000D_venue"),
 
     f.sum("dismissals").over(w_30d).alias("dismissals_30D"),
     f.sum("dismissals").over(w_90d).alias("dismissals_90D"),
@@ -78,5 +78,19 @@ windowed_stats_df = t20_batter_match_df.select(
     f.sum("six_count").over(w_1000d_venue).alias("six_count_1000D_venue"),    
 )
 
-windowed_stats_df.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
+windowed_stats_df_with_avg = windowed_stats_df\
+    .withColumn("batting_avg_30D", f.when(f.col("dismissals_30D") > 0, f.col("batter_runs_30D")/f.col("dismissals_30D")).otherwise(f.col("batter_runs_30D"))) \
+    .withColumn("batting_avg_90D", f.when(f.col("dismissals_90D") > 0, f.col("batter_runs_90D")/f.col("dismissals_90D")).otherwise(f.col("batter_runs_90D"))) \
+    .withColumn("batting_avg_300D", f.when(f.col("dismissals_300D") > 0, f.col("batter_runs_300D")/f.col("dismissals_300D")).otherwise(f.col("batter_runs_300D"))) \
+    .withColumn("batting_avg_1000D", f.when(f.col("dismissals_1000D") > 0, f.col("batter_runs_1000D")/f.col("dismissals_1000D")).otherwise(f.col("batter_runs_1000D"))) \
+    .withColumn("batting_avg_1000D_venue", f.when(f.col("dismissals_1000D_venue") > 0, f.col("batter_runs_1000D_venue")/f.col("dismissals_1000D_venue")).otherwise(f.col("batter_runs_1000D_venue")))
+
+windowed_stats_df_with_avg_sr = windowed_stats_df_with_avg\
+    .withColumn("batting_sr_30D", f.when(f.col("balls_faced_30D") > 0, f.col("batter_runs_30D")/f.col("balls_faced_30D")).otherwise(f.col("batter_runs_30D"))) \
+    .withColumn("batting_sr_90D", f.when(f.col("balls_faced_90D") > 0, f.col("batter_runs_90D")/f.col("balls_faced_90D")).otherwise(f.col("batter_runs_90D"))) \
+    .withColumn("batting_sr_300D", f.when(f.col("balls_faced_300D") > 0, f.col("batter_runs_300D")/f.col("balls_faced_300D")).otherwise(f.col("batter_runs_300D"))) \
+    .withColumn("batting_sr_1000D", f.when(f.col("balls_faced_1000D") > 0, f.col("batter_runs_1000D")/f.col("balls_faced_1000D")).otherwise(f.col("batter_runs_1000D"))) \
+    .withColumn("batting_sr_1000D_venue", f.when(f.col("balls_faced_1000D_venue") > 0, f.col("batter_runs_1000D_venue")/f.col("balls_faced_1000D_venue")).otherwise(f.col("batter_runs_1000D_venue")))
+
+windowed_stats_df_with_avg_sr.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
 

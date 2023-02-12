@@ -81,5 +81,26 @@ windowed_stats_df = t20_bowler_match_df.select(
     f.sum("maiden_count").over(w_1000d_venue).alias("maiden_count_1000D_venue")  
 )
 
-t20_bowler_match_df.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
+windowed_stats_df_with_avg = windowed_stats_df\
+    .withColumn("bowling_avg_30D", f.when(f.col("wicket_sum_30D") > 0, f.col("total_runs_30D")/f.col("wicket_sum_30D")).otherwise(f.col("total_runs_30D"))) \
+    .withColumn("bowling_avg_90D", f.when(f.col("wicket_sum_90D") > 0, f.col("total_runs_90D")/f.col("wicket_sum_90D")).otherwise(f.col("total_runs_90D"))) \
+    .withColumn("bowling_avg_300D", f.when(f.col("wicket_sum_300D") > 0, f.col("total_runs_300D")/f.col("wicket_sum_300D")).otherwise(f.col("total_runs_300D"))) \
+    .withColumn("bowling_avg_1000D", f.when(f.col("wicket_sum_1000D") > 0, f.col("total_runs_1000D")/f.col("wicket_sum_1000D")).otherwise(f.col("total_runs_1000D"))) \
+    .withColumn("bowling_avg_1000D_venue", f.when(f.col("wicket_sum_1000D_venue") > 0, f.col("total_runs_1000D_venue")/f.col("wicket_sum_1000D_venue")).otherwise(f.col("total_runs_1000D_venue")))
+
+windowed_stats_df_with_avg_sr = windowed_stats_df_with_avg\
+    .withColumn("bowling_sr_30D", f.when(f.col("wicket_sum_30D") > 0, f.col("deliveries_30D")/f.col("wicket_sum_30D")).otherwise(f.col("deliveries_30D"))) \
+    .withColumn("bowling_sr_90D", f.when(f.col("wicket_sum_90D") > 0, f.col("deliveries_90D")/f.col("wicket_sum_90D")).otherwise(f.col("deliveries_90D"))) \
+    .withColumn("bowling_sr_300D", f.when(f.col("wicket_sum_300D") > 0, f.col("deliveries_300D")/f.col("wicket_sum_300D")).otherwise(f.col("deliveries_300D"))) \
+    .withColumn("bowling_sr_1000D", f.when(f.col("wicket_sum_1000D") > 0, f.col("deliveries_1000D")/f.col("wicket_sum_1000D")).otherwise(f.col("deliveries_1000D"))) \
+    .withColumn("bowling_sr_1000D_venue", f.when(f.col("wicket_sum_1000D_venue") > 0, f.col("deliveries_1000D_venue")/f.col("wicket_sum_1000D_venue")).otherwise(f.col("deliveries_1000D_venue")))
+
+windowed_stats_df_with_avg_sr_eco = windowed_stats_df_with_avg_sr\
+    .withColumn("bowling_eco_30D", f.when(f.col("deliveries_30D") > 0, f.col("total_runs_30D") * 6.0/f.col("deliveries_30D")).otherwise(f.col("total_runs_30D") * 6.0)) \
+    .withColumn("bowling_eco_90D", f.when(f.col("deliveries_90D") > 0, f.col("total_runs_90D") * 6.0/f.col("deliveries_90D")).otherwise(f.col("total_runs_90D") * 6.0)) \
+    .withColumn("bowling_eco_300D", f.when(f.col("deliveries_300D") > 0, f.col("total_runs_300D") * 6.0/f.col("deliveries_300D")).otherwise(f.col("total_runs_300D") * 6.0)) \
+    .withColumn("bowling_eco_1000D", f.when(f.col("deliveries_1000D") > 0, f.col("total_runs_1000D") * 6.0/f.col("deliveries_1000D")).otherwise(f.col("total_runs_1000D") * 6.0)) \
+    .withColumn("bowling_eco_1000D_venue", f.when(f.col("deliveries_1000D_venue") > 0, f.col("total_runs_1000D_venue") * 6.0/f.col("deliveries_1000D_venue")).otherwise(f.col("total_runs_1000D_venue") * 6.0))
+
+windowed_stats_df_with_avg_sr_eco.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
 
