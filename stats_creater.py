@@ -52,7 +52,7 @@ bat_bowl_field_df_with_points = bat_bowl_field_df\
             bat_bowl_field_df.total_run_sum, bat_bowl_field_df.wicket_sum, bat_bowl_field_df.deliveries, bat_bowl_field_df.maiden_count,
             bat_bowl_field_df.fielding_wicket_sum
         )
-    )
+    ).na.fill(0)
 
 bat_bowl_field_df_with_points.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
 
