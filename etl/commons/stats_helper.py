@@ -63,7 +63,8 @@ def __extract_bowling_fantasy_points(total_runs: Optional[int], wickets: Optiona
     return fantasy_points
 
 def __extract_fielding_fantasy_points(fielding_wickets: Optional[int]):
-    fantasy_points = fielding_wickets * 7 if fielding_wickets is not None else 0 # avergae to 7 to account for various dismisaals mechanisms
+    fantasy_points = 0
+    fantasy_points += fielding_wickets * 7 if fielding_wickets is not None else 0 # avergae to 7 to account for various dismisaals mechanisms
     return fantasy_points
 
 def get_fantasy_points(
@@ -75,6 +76,6 @@ def get_fantasy_points(
     return __extract_batting_fantasy_points(batter_runs, dismissals, balls_faced, boundaries_count, sixes_count) \
         + __extract_bowling_fantasy_points(total_runs, wickets, deliveries, maidens) \
         + __extract_fielding_fantasy_points(fielding_wickets) \
-        + 4.0 # 4 points for being selected
+        + 4 # 4 points for being selected
     
 get_fantasy_points_udf = udf(get_fantasy_points, LongType())

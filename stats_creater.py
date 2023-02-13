@@ -55,3 +55,5 @@ bat_bowl_field_df_with_points = bat_bowl_field_df\
     )
 
 bat_bowl_field_df_with_points.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
+
+# fantasy points coming as Nan
