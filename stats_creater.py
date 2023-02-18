@@ -1,19 +1,18 @@
 from etl.spark.spark_session_helper import spark
 from pyspark.sql import functions as f
 from etl.commons.stats_helper import get_fantasy_points_udf
+from path_manager import intermediate_data_all_train_rows_path, intermediate_data_t20_batter_match_path, intermediate_data_t20_bowler_match_path, intermediate_data_t20_fielder_match_path
 
-output_path = '/home/abhay/work/dream11/processed_output/training_rows'
-
-t20_bowler_match_stats_df = spark.read.parquet("processed_output/t20_bowler_match_stats")\
+t20_bowler_match_stats_df = spark.read.parquet(intermediate_data_t20_bowler_match_path)\
     .withColumnRenamed("match_id", "bowler_match_id")\
     .withColumnRenamed("dt", "bowler_dt")\
     .withColumnRenamed("venue_name", "bowler_venue_name")
-t20_batter_match_stats_df = spark.read.parquet("processed_output/t20_batter_match_stats")\
+t20_batter_match_stats_df = spark.read.parquet(intermediate_data_t20_batter_match_path)\
     .withColumnRenamed("match_id", "batter_match_id")\
     .withColumnRenamed("dt", "batter_dt")\
     .withColumnRenamed("venue_name", "batter_venue_name")
 
-t20_fielder_match_stats_df = spark.read.parquet("processed_output/t20_fielder_match_stats")\
+t20_fielder_match_stats_df = spark.read.parquet(intermediate_data_t20_fielder_match_path)\
     .withColumnRenamed("match_id", "fielder_match_id")\
     .withColumnRenamed("dt", "fielder_dt")\
 
@@ -54,6 +53,4 @@ bat_bowl_field_df_with_points = bat_bowl_field_df\
         )
     ).na.fill(0)
 
-bat_bowl_field_df_with_points.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
-
-# fantasy points coming as Nan
+bat_bowl_field_df_with_points.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(intermediate_data_all_train_rows_path)
