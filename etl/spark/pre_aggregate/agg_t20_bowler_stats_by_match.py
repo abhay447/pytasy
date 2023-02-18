@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame
 from path_manager import intermediate_data_t20_bowler_match_path
 
 def aggregate_bowler_features(t20_df_with_boundaries: DataFrame):
-    bowler_match_relevant_dimensions = ["match_id", "dt", "venue_name", "bowler_name", "bowler_id"] 
+    bowler_match_relevant_dimensions = ["match_id", "dt", "venue_name", "bowler_name", "bowler_id", "is_male"] 
     bowler_over_relevant_dimensions = bowler_match_relevant_dimensions + ["over"]
     bowler_relevant_metrics = ["total_runs","is_wicket"]
 
@@ -55,7 +55,7 @@ def aggregate_bowler_features(t20_df_with_boundaries: DataFrame):
     )
 
     windowed_stats_df = t20_bowler_match_df.select(
-        "dt","match_id","bowler_id","bowler_name","venue_name","total_run_sum", "deliveries", "wicket_sum", "maiden_count", 
+        "dt","match_id","bowler_id","bowler_name","venue_name", "is_male","total_run_sum", "deliveries", "wicket_sum", "maiden_count", 
         f.sum("total_run_sum").over(w_30d).alias("total_runs_30D"),
         f.sum("total_run_sum").over(w_90d).alias("total_runs_90D"),
         f.sum("total_run_sum").over(w_300d).alias("total_runs_300D"),

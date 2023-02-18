@@ -13,7 +13,8 @@ def aggregate_player_stats():
         .where(f.col('dt') > '2015-12-31') \
         .withColumn('is_boundary', f.when((f.col('batter_runs') >= 4) & (f.col("batter_runs") < 6), 1).otherwise(0)) \
         .withColumn('is_six', f.when(f.col("batter_runs") >= 6, 1).otherwise(0)) \
-        .withColumn('is_dismissed', f.when(f.col("wicket_player_id") == f.col("batter_id"), 1).otherwise(0))
+        .withColumn('is_dismissed', f.when(f.col("wicket_player_id") == f.col("batter_id"), 1).otherwise(0)) \
+        .withColumn('is_male', f.when(f.col("gender") == "male", 1).otherwise(0))
     print("*******************************************************************************")
     print("Agrgegating fielder stats")
     agg_t20_fielder_stats_by_match.aggregate_fielder_stats(t20_df_with_boundaries)
@@ -29,15 +30,18 @@ def aggregate_player_stats():
     t20_bowler_match_stats_df = spark.read.parquet(intermediate_data_t20_bowler_match_path)\
         .withColumnRenamed("match_id", "bowler_match_id")\
         .withColumnRenamed("dt", "bowler_dt")\
-        .withColumnRenamed("venue_name", "bowler_venue_name")
+        .withColumnRenamed("venue_name", "bowler_venue_name")\
+        .withColumnRenamed("is_male", "bowler_is_male")
     t20_batter_match_stats_df = spark.read.parquet(intermediate_data_t20_batter_match_path)\
         .withColumnRenamed("match_id", "batter_match_id")\
         .withColumnRenamed("dt", "batter_dt")\
-        .withColumnRenamed("venue_name", "batter_venue_name")
+        .withColumnRenamed("venue_name", "batter_venue_name")\
+        .withColumnRenamed("is_male", "batter_is_male")
 
     t20_fielder_match_stats_df = spark.read.parquet(intermediate_data_t20_fielder_match_path)\
         .withColumnRenamed("match_id", "fielder_match_id")\
         .withColumnRenamed("dt", "fielder_dt")\
+        .withColumnRenamed("is_male", "fielder_is_male")
 
     bat_bowl_df = t20_batter_match_stats_df \
         .join(t20_bowler_match_stats_df, 
@@ -51,7 +55,10 @@ def aggregate_player_stats():
         .withColumn("bat_bowl_dt", f.coalesce(t20_batter_match_stats_df.batter_dt,t20_bowler_match_stats_df.bowler_dt))\
         .withColumn("bat_bowl_match_id", f.coalesce(t20_batter_match_stats_df.batter_match_id,t20_bowler_match_stats_df.bowler_match_id))\
         .withColumn("venue_name", f.coalesce(t20_batter_match_stats_df.batter_venue_name,t20_bowler_match_stats_df.bowler_venue_name))\
-        .drop("bowler_match_id","bowler_dt","bowler_venue_name","batter_match_id","batter_dt","batter_venue_name", "batter_id", "bowler_id")
+        .withColumn("bat_bowl_is_male", f.coalesce(t20_batter_match_stats_df.batter_is_male,t20_bowler_match_stats_df.bowler_is_male))\
+        .drop(
+            "bowler_match_id","bowler_dt","bowler_venue_name","batter_match_id",
+            "batter_dt","batter_venue_name", "batter_id", "bowler_id", "bowler_is_male", "batter_is_male")
 
     bat_bowl_field_df = bat_bowl_df \
         .join(t20_fielder_match_stats_df, 
@@ -64,7 +71,10 @@ def aggregate_player_stats():
         .withColumn("player_id", f.coalesce(bat_bowl_df.bat_bowl_player_id,t20_fielder_match_stats_df.wicket_fielder_id))\
         .withColumn("dt", f.coalesce(bat_bowl_df.bat_bowl_dt,t20_fielder_match_stats_df.fielder_dt))\
         .withColumn("match_id", f.coalesce(bat_bowl_df.bat_bowl_match_id,t20_fielder_match_stats_df.fielder_match_id))\
-        .drop("fielder_match_id","fielder_dt","wicket_fielder_id","bat_bowl_player_id","bat_bowl_dt", "bat_bowl_match_id")
+        .withColumn("is_male", f.coalesce(bat_bowl_df.bat_bowl_is_male,t20_fielder_match_stats_df.fielder_is_male))\
+        .drop(
+            "fielder_match_id","fielder_dt","wicket_fielder_id","bat_bowl_player_id",
+            "bat_bowl_dt", "bat_bowl_match_id","bat_bowl_is_male", "fielder_is_male")
 
     bat_bowl_field_df_with_points = bat_bowl_field_df\
         .withColumn(

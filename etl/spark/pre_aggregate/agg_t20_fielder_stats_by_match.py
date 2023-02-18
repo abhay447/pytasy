@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame
 from path_manager import intermediate_data_t20_fielder_match_path
 
 def aggregate_fielder_stats(t20_df_with_boundaries: DataFrame):
-    fielder_relevant_dimensions = ["dt","match_id","wicket_fielder_id", "wicket_fielder_name"] 
+    fielder_relevant_dimensions = ["dt","match_id","wicket_fielder_id", "wicket_fielder_name", "is_male"] 
     fielder_relevant_metrics = ["is_dismissed"]
 
     t20_fielder_df = t20_df_with_boundaries\
@@ -28,7 +28,7 @@ def aggregate_fielder_stats(t20_df_with_boundaries: DataFrame):
     )
 
     windowed_stats_df = t20_fielder_df_per_month.select(
-        "dt","match_id","wicket_fielder_id","wicket_fielder_name","fielding_wicket_sum",
+        "dt","match_id","wicket_fielder_id","wicket_fielder_name","is_male","fielding_wicket_sum",
         f.sum("fielding_wicket_sum").over(w_300d).alias("fielding_wicket_sum_300D"),
         f.sum("fielding_wicket_sum").over(w_1000d).alias("fielding_wicket_sum_1000D")
     )

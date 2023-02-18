@@ -5,6 +5,7 @@ from pyspark.ml.regression import GBTRegressor ,GBTRegressionModel
 from path_manager import model_train_input_path, model_test_input_path, model_train_predictions_path, model_test_predictions_path, model_save_artifact_path
 
 features = [
+     'is_male',
      'batter_runs_30D',
      'batter_runs_90D',
      'batter_runs_300D',

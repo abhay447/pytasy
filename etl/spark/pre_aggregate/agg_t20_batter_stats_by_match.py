@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame
 from path_manager import intermediate_data_t20_batter_match_path
 
 def aggregate_batter_features(t20_df_with_boundaries: DataFrame):
-    batter_relevant_dimensions = ["match_id", "dt", "venue_name", "batter_name", "batter_id"] 
+    batter_relevant_dimensions = ["match_id", "dt", "venue_name", "batter_name", "batter_id", "is_male"] 
     batter_relevant_metrics = ["batter_runs","is_dismissed", "is_boundary", "is_six"]
     t20_batter_delivery_df = t20_df_with_boundaries.select(batter_relevant_dimensions+batter_relevant_metrics)
 
@@ -46,7 +46,7 @@ def aggregate_batter_features(t20_df_with_boundaries: DataFrame):
 
 
     windowed_stats_df = t20_batter_match_df.select(
-        "dt","match_id","batter_id","batter_name","venue_name","batter_run_sum", "balls_faced", "dismissals", "boundary_count", "six_count", 
+        "dt","match_id","batter_id","batter_name","venue_name","is_male","batter_run_sum", "balls_faced", "dismissals", "boundary_count", "six_count", 
         f.sum("batter_run_sum").over(w_30d).alias("batter_runs_30D"),
         f.sum("batter_run_sum").over(w_90d).alias("batter_runs_90D"),
         f.sum("batter_run_sum").over(w_300d).alias("batter_runs_300D"),
