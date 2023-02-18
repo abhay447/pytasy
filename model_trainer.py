@@ -2,9 +2,10 @@ from etl.spark.spark_session_helper import spark
 
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import GBTRegressor ,GBTRegressionModel
+from path_manager import model_train_input_path, model_test_input_path, model_train_predictions_path, model_test_predictions_path, model_save_artifact_path
 
-train_df = spark.read.parquet("/home/abhay/work/dream11/model_data/model_inputs/train")
-test_df = spark.read.parquet("/home/abhay/work/dream11/model_data/model_inputs/test")
+train_df = spark.read.parquet(model_train_input_path)
+test_df = spark.read.parquet(model_test_input_path)
 
 print("Starting Model Training Flow")
 
@@ -94,12 +95,12 @@ gbtr = gbtr.fit(va_train_df)
 print("model trained")
 
 # save model
-gbtr.write().overwrite().save("/home/abhay/work/dream11/model_data/models/GbtRegression/v1")
+gbtr.write().overwrite().save(model_save_artifact_path)
 
 print("model saved")
 
 # load saved model
-loaded_gbtr = GBTRegressionModel.load("/home/abhay/work/dream11/model_data/models/GbtRegression/v1")
+loaded_gbtr = GBTRegressionModel.load(model_save_artifact_path)
 
 print("loaded saved model")
 
@@ -111,9 +112,7 @@ train_predictions = loaded_gbtr.transform(va_train_df)
 
 # write predictions to disk
 print("writing predictions over test input data to disk")
-output_test_predictions_path = "/home/abhay/work/dream11/model_data/model_oututs/test"
-test_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(output_test_predictions_path)
+test_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_test_predictions_path)
 
 print("writing predictions over train input data to disk")
-output_train_predictions_path = "/home/abhay/work/dream11/model_data/model_oututs/train"
-train_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(output_train_predictions_path)
+train_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_train_predictions_path)

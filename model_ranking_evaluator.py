@@ -1,9 +1,8 @@
 from etl.spark.spark_session_helper import spark
-
-output_test_predictions_path = "/home/abhay/work/dream11/model_data/model_oututs/test"
+from path_manager import model_test_predictions_path
 
 # read test predictions
-test_df = spark.read.parquet(output_test_predictions_path)
+test_df = spark.read.parquet(model_test_predictions_path)
 test_df.registerTempTable("test_preds")
 
 print("Calculating player ranking metrics")
