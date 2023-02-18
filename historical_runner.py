@@ -1,5 +1,0 @@
-from etl.datawriter import write_bulk_historical_data
-from etl.spark.spark_session_helper import spark
-from path_manager import raw_data_dowload_path, raw_data_flatten_path
-
-write_bulk_historical_data(raw_data_dowload_path,raw_data_flatten_path,spark)

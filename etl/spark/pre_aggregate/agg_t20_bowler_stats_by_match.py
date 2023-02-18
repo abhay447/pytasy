@@ -1,9 +1,9 @@
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
-from common_requirements import t20_df_with_boundaries
+from pyspark.sql import DataFrame
 from path_manager import intermediate_data_t20_bowler_match_path
 
-def aggregate_bowler_features():
+def aggregate_bowler_features(t20_df_with_boundaries: DataFrame):
     bowler_match_relevant_dimensions = ["match_id", "dt", "venue_name", "bowler_name", "bowler_id"] 
     bowler_over_relevant_dimensions = bowler_match_relevant_dimensions + ["over"]
     bowler_relevant_metrics = ["total_runs","is_wicket"]

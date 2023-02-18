@@ -1,5 +1,5 @@
 from pyspark.sql.functions import sum, count, trunc
-from common_requirements import t20_df_with_boundaries
+from etl.spark.pre_aggregate.common_requirements import t20_df_with_boundaries
 from path_manager import intermediate_data_t20_batter_bowler_month_path
 
 batter_bowler_relevant_dimensions = ["dt", "venue_name","batter_name", "batter_id", "bowler_name", "bowler_id"] 

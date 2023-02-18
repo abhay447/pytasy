@@ -1,9 +1,9 @@
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
-from common_requirements import t20_df_with_boundaries
+from pyspark.sql import DataFrame
 from path_manager import intermediate_data_t20_fielder_match_path
 
-def aggregate_fielder_stats():
+def aggregate_fielder_stats(t20_df_with_boundaries: DataFrame):
     fielder_relevant_dimensions = ["dt","match_id","wicket_fielder_id", "wicket_fielder_name"] 
     fielder_relevant_metrics = ["is_dismissed"]
 

@@ -3,19 +3,26 @@ from pyspark.sql import functions as f
 from etl.commons.stats_helper import get_fantasy_points_udf
 from path_manager import intermediate_data_all_train_rows_path, intermediate_data_t20_batter_match_path, intermediate_data_t20_bowler_match_path, intermediate_data_t20_fielder_match_path
 from path_manager import model_test_input_path, model_train_input_path
+from path_manager import raw_data_flatten_path
 
 from etl.spark.pre_aggregate import agg_t20_batter_stats_by_match, agg_t20_bowler_stats_by_match, agg_t20_fielder_stats_by_match
 
 def aggregate_player_stats():
+    t20_df_with_boundaries = spark.read.parquet(raw_data_flatten_path)\
+        .where(f.col('match_type') == 'T20') \
+        .where(f.col('dt') > '2015-12-31') \
+        .withColumn('is_boundary', f.when((f.col('batter_runs') >= 4) & (f.col("batter_runs") < 6), 1).otherwise(0)) \
+        .withColumn('is_six', f.when(f.col("batter_runs") >= 6, 1).otherwise(0)) \
+        .withColumn('is_dismissed', f.when(f.col("wicket_player_id") == f.col("batter_id"), 1).otherwise(0))
     print("*******************************************************************************")
     print("Agrgegating fielder stats")
-    agg_t20_fielder_stats_by_match.aggregate_fielder_stats()
+    agg_t20_fielder_stats_by_match.aggregate_fielder_stats(t20_df_with_boundaries)
     print("*******************************************************************************")
     print("Agrgegating batter stats")
-    agg_t20_batter_stats_by_match.aggregate_batter_features()
+    agg_t20_batter_stats_by_match.aggregate_batter_features(t20_df_with_boundaries)
     print("*******************************************************************************")
     print("Agrgegating bowler stats")
-    agg_t20_bowler_stats_by_match.aggregate_bowler_features()
+    agg_t20_bowler_stats_by_match.aggregate_bowler_features(t20_df_with_boundaries)
     print("*******************************************************************************")
     print("combining all stats into raw feature rows")
 
@@ -70,7 +77,7 @@ def aggregate_player_stats():
         ).na.fill(0)
     return bat_bowl_field_df_with_points
 
-def persist_model_input_data():
+def prepare_model_feature_data():
     bat_bowl_field_df_with_points = aggregate_player_stats()
     print("*******************************************************************************")
     print("saving all feature rows df")
