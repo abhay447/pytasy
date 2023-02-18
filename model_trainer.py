@@ -4,11 +4,6 @@ from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import GBTRegressor ,GBTRegressionModel
 from path_manager import model_train_input_path, model_test_input_path, model_train_predictions_path, model_test_predictions_path, model_save_artifact_path
 
-train_df = spark.read.parquet(model_train_input_path)
-test_df = spark.read.parquet(model_test_input_path)
-
-print("Starting Model Training Flow")
-
 features = [
      'batter_runs_30D',
      'batter_runs_90D',
@@ -82,37 +77,41 @@ features = [
      'bowling_eco_1000D_venue'
 ]
 
-# assemble features
-va = VectorAssembler(inputCols = features, outputCol='features')
-va_train_df = va.transform(train_df)
+def start_training():
+     train_df = spark.read.parquet(model_train_input_path)
+     test_df = spark.read.parquet(model_test_input_path)
+     print("Starting Model Training Flow")
+     # assemble features
+     va = VectorAssembler(inputCols = features, outputCol='features')
+     va_train_df = va.transform(train_df)
 
-print("Assembled train features")
+     print("Assembled train features")
 
-# train model 
-gbtr = GBTRegressor(featuresCol='features', labelCol='fantasy_points', maxIter=10)
-gbtr = gbtr.fit(va_train_df)
+     # train model 
+     gbtr = GBTRegressor(featuresCol='features', labelCol='fantasy_points', maxIter=10)
+     gbtr = gbtr.fit(va_train_df)
 
-print("model trained")
+     print("model trained")
 
-# save model
-gbtr.write().overwrite().save(model_save_artifact_path)
+     # save model
+     gbtr.write().overwrite().save(model_save_artifact_path)
 
-print("model saved")
+     print("model saved")
 
-# load saved model
-loaded_gbtr = GBTRegressionModel.load(model_save_artifact_path)
+     # load saved model
+     loaded_gbtr = GBTRegressionModel.load(model_save_artifact_path)
 
-print("loaded saved model")
+     print("loaded saved model")
 
-# assemble test features and predict on test data
-va_test_df = va.transform(test_df)
-test_predictions = loaded_gbtr.transform(va_test_df)
-test_predictions.show(3)
-train_predictions = loaded_gbtr.transform(va_train_df)
+     # assemble test features and predict on test data
+     va_test_df = va.transform(test_df)
+     test_predictions = loaded_gbtr.transform(va_test_df)
+     test_predictions.show(3)
+     train_predictions = loaded_gbtr.transform(va_train_df)
 
-# write predictions to disk
-print("writing predictions over test input data to disk")
-test_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_test_predictions_path)
+     # write predictions to disk
+     print("writing predictions over test input data to disk")
+     test_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_test_predictions_path)
 
-print("writing predictions over train input data to disk")
-train_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_train_predictions_path)
+     print("writing predictions over train input data to disk")
+     train_predictions.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(model_train_predictions_path)
