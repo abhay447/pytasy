@@ -1,8 +1,7 @@
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 from common_requirements import t20_df_with_boundaries
-
-output_path = '/home/abhay/work/dream11/processed_output/t20_bowler_match_stats'
+from path_manager import intermediate_data_t20_bowler_match_path
 
 bowler_match_relevant_dimensions = ["match_id", "dt", "venue_name", "bowler_name", "bowler_id"] 
 bowler_over_relevant_dimensions = bowler_match_relevant_dimensions + ["over"]
@@ -102,5 +101,5 @@ windowed_stats_df_with_avg_sr_eco = windowed_stats_df_with_avg_sr\
     .withColumn("bowling_eco_1000D", f.when(f.col("deliveries_1000D") > 0, f.col("total_runs_1000D") * 6.0/f.col("deliveries_1000D")).otherwise(f.col("total_runs_1000D") * 6.0)) \
     .withColumn("bowling_eco_1000D_venue", f.when(f.col("deliveries_1000D_venue") > 0, f.col("total_runs_1000D_venue") * 6.0/f.col("deliveries_1000D_venue")).otherwise(f.col("total_runs_1000D_venue") * 6.0))
 
-windowed_stats_df_with_avg_sr_eco.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
+windowed_stats_df_with_avg_sr_eco.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(intermediate_data_t20_bowler_match_path)
 

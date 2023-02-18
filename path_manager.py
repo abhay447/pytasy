@@ -12,6 +12,7 @@ intermediate_data_all_train_rows_path = base_path + '/processed_output/training_
 intermediate_data_t20_bowler_match_path = base_path + '/processed_output/t20_bowler_match_stats'
 intermediate_data_t20_batter_match_path = base_path + '/processed_output/t20_batter_match_stats'
 intermediate_data_t20_fielder_match_path = base_path + '/processed_output/t20_fielder_match_stats'
+intermediate_data_t20_batter_bowler_month_path = base_path + '/processed_output/t20_batter_bowler_month_stats'
 
 model_train_input_path = base_path + '/model_data/model_inputs/train'
 model_test_input_path = base_path + '/model_data/model_inputs/test'

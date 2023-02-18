@@ -1,7 +1,6 @@
 from pyspark.sql.functions import sum, count, trunc
 from common_requirements import t20_df_with_boundaries
-
-output_path = '/home/abhay/work/dream11/processed_output/t20_batter_bowler_month_stats'
+from path_manager import intermediate_data_t20_batter_bowler_month_path
 
 batter_bowler_relevant_dimensions = ["dt", "venue_name","batter_name", "batter_id", "bowler_name", "bowler_id"] 
 batter_bowler_relevant_metrics = ["batter_runs","total_runs","is_dismissed"]
@@ -18,5 +17,5 @@ t20_batter_bowler_df_per_month = t20_batter_bowler_df.groupBy(batter_bowler_rele
         sum("is_dismissed").alias("wicket_sum")
     )
 
-t20_batter_bowler_df_per_month.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(output_path)
+t20_batter_bowler_df_per_month.write.format("parquet").partitionBy(["dt"]).mode("overwrite").save(intermediate_data_t20_batter_bowler_month_path)
 

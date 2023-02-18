@@ -1,8 +1,7 @@
 from pyspark.sql import functions as f
 from pyspark.sql.window import Window
 from common_requirements import t20_df_with_boundaries
-
-output_path = '/home/abhay/work/dream11/processed_output/t20_batter_match_stats'
+from path_manager import intermediate_data_t20_batter_match_path
 
 batter_relevant_dimensions = ["match_id", "dt", "venue_name", "batter_name", "batter_id"] 
 batter_relevant_metrics = ["batter_runs","is_dismissed", "is_boundary", "is_six"]
@@ -92,5 +91,5 @@ windowed_stats_df_with_avg_sr = windowed_stats_df_with_avg\
     .withColumn("batting_sr_1000D", f.when(f.col("balls_faced_1000D") > 0, f.col("batter_runs_1000D")/f.col("balls_faced_1000D")).otherwise(f.col("batter_runs_1000D"))) \
     .withColumn("batting_sr_1000D_venue", f.when(f.col("balls_faced_1000D_venue") > 0, f.col("batter_runs_1000D_venue")/f.col("balls_faced_1000D_venue")).otherwise(f.col("batter_runs_1000D_venue")))
 
-windowed_stats_df_with_avg_sr.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(output_path)
+windowed_stats_df_with_avg_sr.write.format("parquet").partitionBy(["dt", "match_id"]).mode("overwrite").save(intermediate_data_t20_batter_match_path)
 
