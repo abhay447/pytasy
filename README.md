@@ -5,6 +5,16 @@ Pytasy is an expeirmental project meant to aggregate player stats and predict fa
 ## Data Source
 Download raw data from : https://cricsheet.org/matches/
 
+## How to train the model
+1. create and activate a new conda/virtual env
+2. install all deps in the env from requirements.txt
+2. run : `python model_workflow.py`
+
+## How to predict fantasy points for a given dt, venue and set of players
+1. Activate the env used while model training
+2. In InferenceFeaturePrep.ipynb notebook , replace player last names
+3. Run the InferenceFeaturePrep.ipynb notebook in jupyter
+
 ## High Level flow:
 1. Download data zip, each match is represented as a single json file in unzipped folder.
 2. Read all match json files and flatten relevant data into parquet files where each row represents a single delivery.
