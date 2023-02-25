@@ -137,3 +137,4 @@ widgetsnbextension==4.0.5
 y-py==0.5.5
 ypy-websocket==0.8.2
 zipp==3.12.1
+pyspark2pmml==0.5.1

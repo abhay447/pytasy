@@ -18,6 +18,8 @@ model_train_input_path = base_path + '/model_data/model_inputs/train'
 model_test_input_path = base_path + '/model_data/model_inputs/test'
 
 model_save_artifact_path =  base_path + '/model_data/models/GbtRegression/v1'
+model_pipeline_save_artifact_path =  base_path + '/model_data/models/GbtRegressionPipeline/v1'
+model_pipeline_pmml_save_artifact_path =  base_path + '/model_data/models/GbtRegressionPipelinePMML/v1/dream11_v1.pmml'
 
 model_train_predictions_path = base_path + '/model_data/model_oututs/train'
 model_test_predictions_path = base_path + '/model_data/model_oututs/test'
