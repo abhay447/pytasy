@@ -8,9 +8,9 @@ import time
 def download_and_unzip_historical_data():
     clear_command = "rm -rf %s"%(raw_data_dowload_path)
     subprocess.run(clear_command.split(" "))
-    download_command = "wget --directory-prefix downloads https://cricsheet.org/downloads/all_json.zip"
+    download_command = "wget --directory-prefix %s https://cricsheet.org/downloads/all_json.zip"%(raw_data_dowload_path)
     subprocess.run(download_command.split(" "))
-    unzip_command = "unzip all_json.zip -d %s"%(raw_data_dowload_path)
+    unzip_command = "unzip %s/all_json.zip -d %s"%(raw_data_dowload_path, raw_data_dowload_path)
     subprocess.run(unzip_command.split(" "))
 
 def download_and_unzip_incremental_data():
