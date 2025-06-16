@@ -18,7 +18,7 @@ def download_and_unzip_incremental_data():
     subprocess.run(clear_command.split(" "))
     download_command = "wget --directory-prefix downloads https://cricsheet.org/downloads/recently_added_30_json.zip"
     subprocess.run(download_command.split(" "))
-    unzip_command = "unzip recently_added_30_json.zip -d %s"%(raw_30_days_data_dowload_path)
+    unzip_command = "unzip downloads/recently_added_30_json.zip -d %s"%(raw_30_days_data_dowload_path)
     subprocess.run(unzip_command.split(" "))
 
 
@@ -44,6 +44,6 @@ def prepare_data(mode: str):
     print("raw data download and flatten finished")
     print("moving to feature prep")
     time.sleep(10)
-    prepare_model_feature_data()
+    # prepare_model_feature_data()
     print("feature prep done")
     

@@ -10,7 +10,7 @@ def write_bulk_historical_data(raw_data_prefix: str, output_path: str, spark: Sp
     write_dataframe_with_date_partition(df=spark_rows_df, output_path=output_path,overwrite=True, spark=spark)
 
 def merge_new_data(output_path: str, historical_data_prefix:str, new_data_prefix: str,  spark: SparkSession) -> None:
-    historical_dataset: DataFrame = spark.read.parquet(historical_data_prefix)
+    historical_dataset: DataFrame = spark.read.parquet(output_path)
     new_data_df = read_delivery_records_as_dataframe(new_data_prefix,spark)
     new_data_date_range = get_min_max_date(new_data_df)
     overlapping_historical_data = historical_dataset\
